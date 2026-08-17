@@ -31,9 +31,22 @@ namespace Hellfire.Presentation
 
         private void OnGUI()
         {
+            // IMGUI event, not Input.*: works under either input backend, and in
+            // a fullscreen player build ESC is the expected way out.
+            var ev = Event.current;
+            if (ev.type == EventType.KeyDown && ev.keyCode == KeyCode.Escape)
+            {
+                Application.Quit();
+            }
+
             GUILayout.BeginArea(new Rect(12, 12, 320, Screen.height - 24), GUI.skin.box);
             GUILayout.Label("<b>PROJECT HELLFIRE</b> — swarm transit through an air-defense belt",
                 new GUIStyle(GUI.skin.label) { richText = true, wordWrap = true });
+            GUILayout.Label("ESC quits", new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 10,
+                normal = { textColor = new Color(1f, 1f, 1f, 0.45f) },
+            });
 
             if (!_driver.Running) DrawAuthoring();
             else DrawRun();
