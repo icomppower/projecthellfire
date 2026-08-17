@@ -57,6 +57,22 @@ preliminary, real loop rounds at steps 5–6 decide.
 
 Scope deviation, logged: VFX Graph explosions are editor-authored graphs (hand-writing .vfx YAML sits in the same corruption category as .unity edits) — code-configured ParticleSystem pool ships instead; VFX Graph reserved for an editor-in-the-loop session (natural H5 test case).
 
+## Step 5 — DOTS experiment — DONE 2026-08-17, kept contained (Editor-only)
+
+Runner: `tools/run-dots-experiment.sh` (compile → dots tests → H1 → H2).
+
+H1: per-tick speedup managed→Burst-parallel 7.3×–26.1× (512→32k agents);
+60 fps ceiling 3,332 → 17,245 agents (5.2× — compressed by the scenario's
+superlinear density). H2: Burst seq vs parallel **500/500 byte-identical**
+(Jacobi per-agent structure preserves replay — see pre-reg amendment
+2026-08-17); managed vs Burst 0/100, divergent from tick 0 (compiler
+substrate changes floats immediately → the scored artifact stays on the
+managed sim; GDD §3 split vindicated). Burst trap on record: async
+compilation runs first episodes on the managed fallback with different
+floats — `CompileSynchronously = true` is a determinism requirement.
+Decision: presentation keeps the managed sim; DOTS stays a measured
+capability, not a foundation.
+
 ## Convergence exits (never improvise new ones)
 
 Target met · plateau <0.15 ×2 · regression ×2 · oscillation ×3 · hard budget cap.
