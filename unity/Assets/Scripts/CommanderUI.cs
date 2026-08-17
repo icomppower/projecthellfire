@@ -22,6 +22,7 @@ namespace Hellfire.Presentation
         private float _reserve = 0.25f;
         private string _seedText = "42";
         private bool _usedAbort, _usedFallBack, _usedCommit;
+        private int _peakJamExposure;
 
         private void Awake()
         {
@@ -60,6 +61,7 @@ namespace Hellfire.Presentation
             {
                 if (!ulong.TryParse(_seedText, out ulong seed)) seed = 42;
                 _usedAbort = _usedFallBack = _usedCommit = false;
+                _peakJamExposure = 0;
                 _driver.LaunchWith(new Doctrine
                 {
                     Autonomy = _autonomy,
@@ -80,9 +82,12 @@ namespace Hellfire.Presentation
             int completed = s.CountStatus(AgentStatus.Completed);
             int safe = s.CountStatus(AgentStatus.Safe);
             int reserve = s.CountStatus(AgentStatus.Reserve);
+            int jammedNow = s.JammedNowCount;
+            if (jammedNow > _peakJamExposure) _peakJamExposure = jammedNow;
 
             GUILayout.Label($"T+{s.Tick / 60f:F1}s   EW sites this run: {sc.JammerCount}");
             GUILayout.Label($"active {active}   reserve {reserve}   delivered {completed}   dead {dead}   home {safe}");
+            GUILayout.Label($"jammed now: {jammedNow}");
             if (s.Aborted) GUILayout.Label("MISSION ABORTED — swarm returning");
             else if (s.Tick < s.RecallUntilTick)
                 GUILayout.Label($"FALLING BACK — resumes in {(s.RecallUntilTick - s.Tick) / 60f:F0}s");
@@ -109,6 +114,7 @@ namespace Hellfire.Presentation
                 GUILayout.Space(8);
                 GUILayout.Label("<b>Post-run diagnosis (§2: every loss names its doctrine parameter)</b>",
                     new GUIStyle(GUI.skin.label) { richText = true, wordWrap = true });
+                GUILayout.Label($"peak jam exposure: {_peakJamExposure} agents");
                 DrawDiagnosis(s);
                 GUILayout.Space(6);
                 if (GUILayout.Button("NEW RUN", GUILayout.Height(30))) Relaunch();

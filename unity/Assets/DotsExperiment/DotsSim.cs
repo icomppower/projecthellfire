@@ -24,10 +24,12 @@ namespace Hellfire.Dots
 
         public int Tick { get; private set; }
         public bool Aborted { get; private set; }
+        public int JammedNowCount { get; private set; }
         public readonly int AgentCount;
 
         private readonly ulong _seed;
         private readonly Doctrine _doctrine;
+        private readonly Scenario _scenario;
         private readonly int _cols;
         private readonly int _rows;
 
@@ -51,11 +53,11 @@ namespace Hellfire.Dots
             _cols = Math.Max(1, (int)(Simulation.WorldWidth / CellSize));
             _rows = Math.Max(1, (int)(Simulation.WorldHeight / CellSize));
 
-            var scenario = new Scenario(seed);
-            _threatX = new NativeArray<float>(scenario.ThreatX, Allocator.Persistent);
-            _threatY = new NativeArray<float>(scenario.ThreatY, Allocator.Persistent);
-            _jammerX = new NativeArray<float>(scenario.JammerX, Allocator.Persistent);
-            _jammerY = new NativeArray<float>(scenario.JammerY, Allocator.Persistent);
+            _scenario = new Scenario(seed);
+            _threatX = new NativeArray<float>(_scenario.ThreatX, Allocator.Persistent);
+            _threatY = new NativeArray<float>(_scenario.ThreatY, Allocator.Persistent);
+            _jammerX = new NativeArray<float>(_scenario.JammerX, Allocator.Persistent);
+            _jammerY = new NativeArray<float>(_scenario.JammerY, Allocator.Persistent);
             _cellStart = new NativeArray<int>(_cols * _rows + 1, Allocator.Persistent);
             _cellCounts = new NativeArray<int>(_cols * _rows, Allocator.Persistent);
             _entries = new NativeArray<int>(agentCount, Allocator.Persistent);
@@ -134,6 +136,21 @@ namespace Hellfire.Dots
             else job.Run(AgentCount);
 
             _cur = next;
+            // Jam-exposure census — mirrors Sim.Tick's post-loop pass (integer,
+            // order-independent), keeping StateHash byte-compatible with SimState.
+            var scen = _scenario;
+            var posX = _posX[_cur];
+            var posY = _posY[_cur];
+            var st = _status[_cur];
+            int jammedNow = 0;
+            for (int i = 0; i < AgentCount; i++)
+            {
+                byte b = st[i];
+                if (b == (byte)AgentStatus.Dead || b == (byte)AgentStatus.Safe
+                    || b == (byte)AgentStatus.Reserve) continue;
+                if (scen.IsJammed(posX[i], posY[i])) jammedNow++;
+            }
+            JammedNowCount = jammedNow;
             // Abort latch — integer reduction on the main thread, like Sim.Tick's
             // post-loop check.
             if (!Aborted)
@@ -195,6 +212,7 @@ namespace Hellfire.Dots
             h = FnvInt(h, AgentCount, prime);
             h = FnvInt(h, Aborted ? 1 : 0, prime);
             h = FnvInt(h, 0, prime); // RecallUntilTick — always 0 here (no interrupts)
+            h = FnvInt(h, JammedNowCount, prime);
             h = FnvFloats(h, _posX[_cur], prime);
             h = FnvFloats(h, _posY[_cur], prime);
             h = FnvFloats(h, _velX[_cur], prime);

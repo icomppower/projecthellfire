@@ -359,6 +359,17 @@ namespace Hellfire.Sim
                 if (dead > doctrine.AbortLossFraction * n) state.Aborted = true;
             }
 
+            // --- Jam-exposure census: recomputed from scratch every tick. ---
+            int jammedNow = 0;
+            for (int i = 0; i < n; i++)
+            {
+                var status = (AgentStatus)state.Status[i];
+                if (status == AgentStatus.Dead || status == AgentStatus.Safe
+                    || status == AgentStatus.Reserve) continue;
+                if (sc.IsJammed(state.PosX[i], state.PosY[i])) jammedNow++;
+            }
+            state.JammedNowCount = jammedNow;
+
             state.Tick++;
         }
 

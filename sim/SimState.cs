@@ -54,6 +54,11 @@ namespace Hellfire.Sim
         public bool Aborted;
         /// <summary>FallBack interrupt: agents head home while Tick &lt; this.</summary>
         public int RecallUntilTick;
+        /// <summary>Agents whose status is not Dead/Safe/Reserve that are currently
+        /// inside any jammer zone. Recomputed from scratch every tick by
+        /// Simulation.Tick — not incremental, not persisted across Clone beyond
+        /// the copied value.</summary>
+        public int JammedNowCount;
 
         public SimState(int agentCount)
         {
@@ -70,7 +75,7 @@ namespace Hellfire.Sim
 
         public SimState Clone()
         {
-            var c = new SimState(AgentCount) { Tick = Tick, Aborted = Aborted, RecallUntilTick = RecallUntilTick };
+            var c = new SimState(AgentCount) { Tick = Tick, Aborted = Aborted, RecallUntilTick = RecallUntilTick, JammedNowCount = JammedNowCount };
             Array.Copy(PosX, c.PosX, AgentCount);
             Array.Copy(PosY, c.PosY, AgentCount);
             Array.Copy(VelX, c.VelX, AgentCount);
@@ -110,6 +115,7 @@ namespace Hellfire.Sim
             h = FnvInt(h, AgentCount, prime);
             h = FnvInt(h, Aborted ? 1 : 0, prime);
             h = FnvInt(h, RecallUntilTick, prime);
+            h = FnvInt(h, JammedNowCount, prime);
             h = FnvArray(h, PosX, prime);
             h = FnvArray(h, PosY, prime);
             h = FnvArray(h, VelX, prime);

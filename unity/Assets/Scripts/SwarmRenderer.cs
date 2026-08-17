@@ -19,6 +19,7 @@ namespace Hellfire.Presentation
         public Color completedColor = new Color(0.4f, 1f, 0.45f);
         public Color deadColor = new Color(1f, 0.25f, 0.15f);
         public Color safeColor = new Color(0.45f, 0.6f, 1f);
+        public Color jammedTint = new Color(0.7f, 0.4f, 1f);
         public ExplosionPool explosions;
 
         private SimDriver _driver;
@@ -61,7 +62,12 @@ namespace Hellfire.Presentation
                 var status = (AgentStatus)state.Status[i];
                 var pos = new Vector3(state.PosX[i], 0.5f, state.PosY[i]);
                 _matrices[i] = Matrix4x4.TRS(pos, rot, scale);
-                _colors[i] = ColorFor(status);
+                var color = ColorFor(status);
+                if (_driver.Sim.Scenario.IsJammed(state.PosX[i], state.PosY[i]))
+                {
+                    color = Vector4.Lerp(color, jammedTint, 0.5f);
+                }
+                _colors[i] = color;
 
                 if (explosions != null
                     && status == AgentStatus.Dead
