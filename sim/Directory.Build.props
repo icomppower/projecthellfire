@@ -1,0 +1,9 @@
+<!-- sim/ doubles as a Unity local package (see package.json). Unity imports every
+     file in the package folder, so dotnet build outputs must land OUTSIDE it —
+     a stale Hellfire.Sim.dll under bin/ would shadow the live source in Unity. -->
+<Project>
+  <PropertyGroup>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)../.build/sim/bin/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)../.build/sim/obj/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

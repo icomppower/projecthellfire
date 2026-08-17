@@ -35,3 +35,6 @@ unity/Assets/Scenes.meta
 unity/Assets/Settings/
 unity/Assets/Settings.meta
 unity/Packages/packages-lock.json
+
+# dotnet build artifacts (redirected out of the sim UPM package)
+.build/
