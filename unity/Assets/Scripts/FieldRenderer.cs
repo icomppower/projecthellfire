@@ -16,8 +16,8 @@ namespace Hellfire.Presentation
     [RequireComponent(typeof(SimDriver))]
     public sealed class FieldRenderer : MonoBehaviour
     {
-        public Color threatRing = new Color(1f, 0.35f, 0.2f, 0.85f);
-        public Color threatFill = new Color(1f, 0.3f, 0.15f, 0.06f);
+        public Color threatRing = new Color(1f, 0.35f, 0.2f, 0.6f);
+        public Color threatFill = new Color(1f, 0.3f, 0.15f, 0.035f);
         public Color jammerRing = new Color(0.72f, 0.42f, 1f, 0.7f);
         public Color jammerFill = new Color(0.7f, 0.4f, 1f, 0.05f);
         public Color objectiveColor = new Color(0.35f, 1f, 0.55f, 0.9f);
@@ -52,11 +52,18 @@ namespace Hellfire.Presentation
         private readonly List<Matrix4x4> _dishM = new List<Matrix4x4>();
         private static readonly int ColorProp = Shader.PropertyToID("_BaseColor");
 
+        /// <summary>Explicit culling bounds for every instanced draw: default
+        /// RenderParams bounds are a zero-size box at the origin, which the old
+        /// top-down camera happened to keep on screen — the perspective camera
+        /// does not, so without this the whole instanced layer can vanish.</summary>
+        private static readonly Bounds DrawBounds =
+            new Bounds(new Vector3(256f, 60f, 256f), new Vector3(1800f, 500f, 1800f));
+
         private void Awake()
         {
             _driver = GetComponent<SimDriver>();
             _disc = BuildDisc(48);
-            _ring = BuildRing(64, 0.94f);
+            _ring = BuildRing(64, 0.965f);
             _quad = BuildQuad();
             _material = material;
             if (_material == null)
@@ -91,6 +98,7 @@ namespace Hellfire.Presentation
                 var rp = new RenderParams(mats[s])
                 {
                     shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On,
+                    worldBounds = DrawBounds,
                 };
                 Graphics.RenderMeshInstanced(rp, mesh, s, m, m.Count);
             }
@@ -101,7 +109,7 @@ namespace Hellfire.Presentation
             if (m.Count == 0) return;
             _props.Clear();
             _props.SetVectorArray(ColorProp, c);
-            var rp = new RenderParams(_material) { matProps = _props };
+            var rp = new RenderParams(_material) { matProps = _props, worldBounds = DrawBounds };
             Graphics.RenderMeshInstanced(rp, mesh, 0, m, m.Count);
         }
 

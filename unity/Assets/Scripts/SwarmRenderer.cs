@@ -66,6 +66,13 @@ namespace Hellfire.Presentation
         private readonly List<Vector4> _trailC = new List<Vector4>();
         private static readonly int ColorProp = Shader.PropertyToID("_BaseColor");
 
+        /// <summary>Explicit culling bounds for every instanced draw: default
+        /// RenderParams bounds are a zero-size box at the origin, which the old
+        /// top-down camera happened to keep on screen — the perspective camera
+        /// does not, so without this the whole instanced layer can vanish.</summary>
+        private static readonly Bounds DrawBounds =
+            new Bounds(new Vector3(256f, 60f, 256f), new Vector3(1800f, 500f, 1800f));
+
         private void Awake()
         {
             _driver = GetComponent<SimDriver>();
@@ -188,6 +195,7 @@ namespace Hellfire.Presentation
                 var rp = new RenderParams(craftMaterials[s])
                 {
                     shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On,
+                    worldBounds = DrawBounds,
                 };
                 if (s == accentSubmesh)
                 {
@@ -204,7 +212,7 @@ namespace Hellfire.Presentation
             if (m.Count == 0) return;
             _props.Clear();
             _props.SetVectorArray(ColorProp, c);
-            var rp = new RenderParams(_material) { matProps = _props };
+            var rp = new RenderParams(_material) { matProps = _props, worldBounds = DrawBounds };
             Graphics.RenderMeshInstanced(rp, mesh, 0, m, m.Count);
         }
 

@@ -187,6 +187,7 @@ namespace Hellfire.EditorTools
             var labels = swarmGo.AddComponent<TacticalLabels>();
             labels.engagement = engagement;
             swarmGo.AddComponent<CommanderUI>();
+            swarmGo.AddComponent<DebugShot>();
 
             EditorSceneManager.SaveScene(scene, "Assets/Scenes/Main.unity");
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene("Assets/Scenes/Main.unity", true) };

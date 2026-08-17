@@ -24,8 +24,8 @@ namespace Hellfire.Presentation
         private GUIStyle _feed;
         private readonly StringBuilder _sb = new StringBuilder(96);
 
-        private static readonly Color ThreatColor = new Color(1f, 0.5f, 0.35f);
-        private static readonly Color ThreatHotColor = new Color(1f, 0.85f, 0.3f);
+        private static readonly Color ThreatColor = new Color(1f, 0.85f, 0.8f);
+        private static readonly Color ThreatHotColor = new Color(1f, 1f, 0.5f);
         private static readonly Color JammerColor = new Color(0.8f, 0.55f, 1f);
         private static readonly Color ObjectiveColor = new Color(0.5f, 1f, 0.6f);
         private static readonly Color FeedColor = new Color(1f, 0.75f, 0.55f);

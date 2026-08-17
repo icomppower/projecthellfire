@@ -67,6 +67,13 @@ namespace Hellfire.Presentation
         private MaterialPropertyBlock _props;
         private static readonly int ColorProp = Shader.PropertyToID("_BaseColor");
 
+        /// <summary>Explicit culling bounds for every instanced draw: default
+        /// RenderParams bounds are a zero-size box at the origin, which the old
+        /// top-down camera happened to keep on screen — the perspective camera
+        /// does not, so without this the whole instanced layer can vanish.</summary>
+        private static readonly Bounds DrawBounds =
+            new Bounds(new Vector3(256f, 60f, 256f), new Vector3(1800f, 500f, 1800f));
+
         private void Awake()
         {
             _driver = GetComponent<SimDriver>();
@@ -274,7 +281,7 @@ namespace Hellfire.Presentation
             if (_m.Count == 0) return;
             _props.Clear();
             _props.SetVectorArray(ColorProp, _c);
-            var rp = new RenderParams(material) { matProps = _props };
+            var rp = new RenderParams(material) { matProps = _props, worldBounds = DrawBounds };
             Graphics.RenderMeshInstanced(rp, mesh, 0, _m, _m.Count);
         }
 
