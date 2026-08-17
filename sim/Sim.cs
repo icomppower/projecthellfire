@@ -59,18 +59,58 @@ namespace Hellfire.Sim
             _scenario = new Scenario(seed, config);
         }
 
-        public static SimState CreateInitialState(int agentCount, ulong seed)
+        public static SimState CreateInitialState(int agentCount, ulong seed, float reserveFraction = 0f)
         {
             var s = new SimState(agentCount);
+            // Highest indices are the reserve: held at spawn, zero velocity,
+            // launched only by the CommitReserve interrupt.
+            int reserveStart = agentCount - (int)(agentCount * reserveFraction);
             for (int i = 0; i < agentCount; i++)
             {
                 ulong id = (ulong)i;
                 s.PosX[i] = DetHash.Float01(seed, 0, id, (ulong)Tag.InitPosX) * WorldWidth;
                 s.PosY[i] = DetHash.Float01(seed, 0, id, (ulong)Tag.InitPosY) * Scenario.SpawnBandHeight;
-                s.VelX[i] = DetHash.FloatSigned(seed, 0, id, (ulong)Tag.InitVelX) * 5f;
-                s.VelY[i] = DetHash.FloatSigned(seed, 0, id, (ulong)Tag.InitVelY) * 5f;
+                if (i >= reserveStart)
+                {
+                    s.Status[i] = (byte)AgentStatus.Reserve;
+                }
+                else
+                {
+                    s.VelX[i] = DetHash.FloatSigned(seed, 0, id, (ulong)Tag.InitVelX) * 5f;
+                    s.VelY[i] = DetHash.FloatSigned(seed, 0, id, (ulong)Tag.InitVelY) * 5f;
+                }
             }
             return s;
+        }
+
+        /// <summary>Number of ticks a FallBack interrupt keeps the swarm recalled.</summary>
+        public const int RecallDurationTicks = 600;
+
+        /// <summary>Doctrine-level commander interrupts (GDD §1) — swarm-wide
+        /// state changes only, never a per-unit order. Deterministic: replay is
+        /// (seed, doctrine, tick-stamped plan).</summary>
+        public static void ApplyInterrupt(SimState state, InterruptType type)
+        {
+            switch (type)
+            {
+                case InterruptType.Abort:
+                    state.Aborted = true;
+                    break;
+                case InterruptType.FallBack:
+                    state.RecallUntilTick = state.Tick + RecallDurationTicks;
+                    break;
+                case InterruptType.CommitReserve:
+                    for (int i = 0; i < state.AgentCount; i++)
+                    {
+                        if (state.Status[i] == (byte)AgentStatus.Reserve)
+                        {
+                            state.Status[i] = (byte)AgentStatus.Active;
+                        }
+                    }
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type));
+            }
         }
 
         private enum Tag : ulong
@@ -110,7 +150,8 @@ namespace Hellfire.Sim
             for (int i = 0; i < n; i++)
             {
                 var status = (AgentStatus)state.Status[i];
-                if (status == AgentStatus.Dead || status == AgentStatus.Safe) continue;
+                if (status == AgentStatus.Dead || status == AgentStatus.Safe
+                    || status == AgentStatus.Reserve) continue;
 
                 float px = state.PosX[i];
                 float py = state.PosY[i];
@@ -141,9 +182,9 @@ namespace Hellfire.Sim
                 float knowledgeRadius = effSensor + effNet * (720f - effSensor);
                 float knowledgeR2 = knowledgeRadius * knowledgeRadius;
 
-                // --- Target: objective, or home once the swarm has aborted. ---
+                // --- Target: objective, or home while aborted / recalled. ---
                 float tx, ty;
-                if (state.Aborted) { tx = px; ty = 0f; }
+                if (state.Aborted || state.Tick < state.RecallUntilTick) { tx = px; ty = 0f; }
                 else { tx = Scenario.ObjectiveX; ty = Scenario.ObjectiveY; }
 
                 float dxT = tx - px;
@@ -325,16 +366,24 @@ namespace Hellfire.Sim
         /// Runs a seeded episode, ending early once no agent is still Active.
         /// </summary>
         public static SimState Run(ulong seed, int agentCount, int maxTicks, Doctrine doctrine)
-            => Run(seed, agentCount, maxTicks, doctrine, ScenarioConfig.Default);
+            => Run(seed, agentCount, maxTicks, doctrine, ScenarioConfig.Default, InterruptPlan.None);
 
         public static SimState Run(ulong seed, int agentCount, int maxTicks, Doctrine doctrine, ScenarioConfig config)
+            => Run(seed, agentCount, maxTicks, doctrine, config, InterruptPlan.None);
+
+        public static SimState Run(ulong seed, int agentCount, int maxTicks, Doctrine doctrine,
+                                   ScenarioConfig config, InterruptPlan plan)
         {
             var sim = new Simulation(agentCount, seed, config);
-            var state = CreateInitialState(agentCount, seed);
+            var state = CreateInitialState(agentCount, seed, doctrine.ReserveFraction);
             for (int t = 0; t < maxTicks; t++)
             {
+                plan.ApplyDue(state);
                 sim.Tick(state, doctrine, seed);
-                if (state.CountStatus(AgentStatus.Active) == 0) break;
+                // A held reserve keeps the run alive: all actives resolved with
+                // an uncommitted reserve is still a decision state, not an end.
+                if (state.CountStatus(AgentStatus.Active) == 0
+                    && state.CountStatus(AgentStatus.Reserve) == 0) break;
             }
             return state;
         }

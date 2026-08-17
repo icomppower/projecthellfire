@@ -38,5 +38,12 @@ stage bootstrap "$UNITY" -batchmode -quit -nographics -projectPath "$PROJ" \
   -executeMethod Hellfire.EditorTools.SceneBootstrap.Build -logFile "$LOGDIR/bootstrap.log"
 [ -f "$PROJ/Assets/Scenes/Main.unity" ] && echo "scene: Assets/Scenes/Main.unity generated" || { echo "scene missing"; overall=1; }
 
+if [ "${1:-}" = "--build" ]; then
+  stage build "$UNITY" -batchmode -quit -projectPath "$PROJ" \
+    -executeMethod Hellfire.EditorTools.PlayerBuild.BuildMac -logFile "$LOGDIR/build.log"
+  grep -F "[PlayerBuild]" "$LOGDIR/build.log" | head -2
+  [ -d "$REPO/builds/ProjectHellfire.app" ] && echo "app: builds/ProjectHellfire.app" || { echo "app missing"; overall=1; }
+fi
+
 echo "=== overall: $([ $overall -eq 0 ] && echo PASS || echo FAIL) ==="
 exit $overall

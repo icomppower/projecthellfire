@@ -97,6 +97,7 @@ namespace Hellfire.EditorTools
             var swarmRenderer = swarmGo.AddComponent<SwarmRenderer>();
             swarmRenderer.explosions = explosions;
             swarmGo.AddComponent<FieldRenderer>();
+            swarmGo.AddComponent<CommanderUI>();
 
             EditorSceneManager.SaveScene(scene, "Assets/Scenes/Main.unity");
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene("Assets/Scenes/Main.unity", true) };

@@ -107,6 +107,8 @@ namespace Hellfire.Dots
                 Seed = _seed,
                 Tick = (ulong)Tick,
                 AbortedPrev = Aborted,
+                RecalledPrev = false, // DotsSim issues no interrupts; RecallUntilTick stays 0
+
                 ThreatX = _threatX,
                 ThreatY = _threatY,
                 JammerX = _jammerX,
@@ -192,6 +194,7 @@ namespace Hellfire.Dots
             h = FnvInt(h, Tick, prime);
             h = FnvInt(h, AgentCount, prime);
             h = FnvInt(h, Aborted ? 1 : 0, prime);
+            h = FnvInt(h, 0, prime); // RecallUntilTick — always 0 here (no interrupts)
             h = FnvFloats(h, _posX[_cur], prime);
             h = FnvFloats(h, _posY[_cur], prime);
             h = FnvFloats(h, _velX[_cur], prime);

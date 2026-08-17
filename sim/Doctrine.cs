@@ -33,6 +33,13 @@ namespace Hellfire.Sim
         // aborts and every non-completed agent turns for home.
         public float AbortLossFraction { get; set; } = 0.5f;
 
+        // --- Force structure ---
+        // Fraction held back at spawn, launched only by the CommitReserve
+        // interrupt. Insurance priced in completion ceiling: an uncommitted
+        // reserve survives trivially and delivers nothing. Default 0 keeps the
+        // pre-step-6 scored baseline intact.
+        public float ReserveFraction { get; set; } = 0f;
+
         // --- Formation ---
         // 0 = loose swarm (agents transit independently), 1 = tight flock
         // (cohesion pulls the group together — including toward danger the

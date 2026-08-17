@@ -111,6 +111,10 @@ namespace Hellfire.Dots
         public ulong Seed;
         public ulong Tick;
         public bool AbortedPrev;
+        // Step-6 recall semantics (FallBack interrupt). DotsSim never issues
+        // interrupts, so this stays false there — mirrored for parity with
+        // sim/Sim.cs's target-selection condition.
+        public bool RecalledPrev;
 
         // --- Scenario (copied once from a Hellfire.Sim.Scenario built from the
         // same seed / ScenarioConfig.Default equivalent). ---
@@ -150,7 +154,8 @@ namespace Hellfire.Dots
             // --- Dead / Safe: original `continue`s and leaves state untouched;
             // Jacobi must carry the value forward explicitly since Next* starts
             // uninitialized each tick. ---
-            if (status == (byte)AgentStatus.Dead || status == (byte)AgentStatus.Safe)
+            if (status == (byte)AgentStatus.Dead || status == (byte)AgentStatus.Safe
+                || status == (byte)AgentStatus.Reserve)
             {
                 NextPosX[i] = PrevPosX[i];
                 NextPosY[i] = PrevPosY[i];
@@ -197,7 +202,7 @@ namespace Hellfire.Dots
 
             // --- Target: objective, or home once the swarm has aborted. ---
             float tx, ty;
-            if (AbortedPrev) { tx = px; ty = 0f; }
+            if (AbortedPrev || RecalledPrev) { tx = px; ty = 0f; }
             else { tx = ObjectiveX; ty = ObjectiveY; }
 
             float dxT = tx - px;

@@ -23,27 +23,61 @@ namespace Hellfire.Presentation
         public Simulation Sim { get; private set; }
         public SimState State { get; private set; }
         public bool Finished { get; private set; }
+        /// <summary>False until launched — the commander authors doctrine first (§1).</summary>
+        public bool Running { get; private set; }
 
         private Doctrine _doctrine;
+        private Doctrine _doctrineOverride;
         private float _accumulator;
+
+        public Doctrine ActiveDoctrine => _doctrine;
+
+        /// <summary>Locks in the authored doctrine and starts the run.</summary>
+        public void LaunchWith(Doctrine authored, ulong newSeed)
+        {
+            _doctrineOverride = authored;
+            seed = newSeed;
+            ResetSim();
+            Running = true;
+        }
+
+        /// <summary>Back to the pre-run authoring state (doctrine editable again).</summary>
+        public void HaltToAuthoring()
+        {
+            Running = false;
+            ResetSim();
+        }
 
         private void Awake()
         {
             ResetSim();
         }
 
+        public int InterruptsUsed { get; private set; }
+
         public void ResetSim()
         {
-            _doctrine = doctrine != null ? doctrine.ToDoctrine() : Doctrine.Default;
+            _doctrine = _doctrineOverride ?? (doctrine != null ? doctrine.ToDoctrine() : Doctrine.Default);
             Sim = new Simulation(agentCount, seed);
-            State = Simulation.CreateInitialState(agentCount, seed);
+            State = Simulation.CreateInitialState(agentCount, seed, _doctrine.ReserveFraction);
             Finished = false;
+            InterruptsUsed = 0;
             _accumulator = 0f;
+        }
+
+        /// <summary>Commander interrupt (§1): swarm-level only, capped per run.
+        /// Applied between ticks, so it lands on a well-defined sim tick.</summary>
+        public bool TryInterrupt(InterruptType type)
+        {
+            if (State == null || Finished || InterruptsUsed >= InterruptPlan.MaxOrders) return false;
+            Simulation.ApplyInterrupt(State, type);
+            InterruptsUsed++;
+            return true;
         }
 
         private void Update()
         {
-            if (Finished) return;
+            if (!Running || Finished) return;
             _accumulator += Time.deltaTime * timeScale;
             // Cap catch-up work per frame so a hitch cannot spiral.
             int steps = Mathf.Min((int)(_accumulator / Simulation.FixedDt), 8);
@@ -60,7 +94,8 @@ namespace Hellfire.Presentation
             {
                 if (maxTicks > 0 && State.Tick >= maxTicks) { Finished = true; return; }
                 Sim.Tick(State, _doctrine, seed);
-                if (State.CountStatus(AgentStatus.Active) == 0) { Finished = true; return; }
+                if (State.CountStatus(AgentStatus.Active) == 0
+                    && State.CountStatus(AgentStatus.Reserve) == 0) { Finished = true; return; }
             }
         }
     }

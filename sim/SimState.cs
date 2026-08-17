@@ -8,6 +8,7 @@ namespace Hellfire.Sim
         Dead = 1,
         Completed = 2, // reached the objective; latched
         Safe = 3,      // aborted and made it back to the spawn band
+        Reserve = 4,   // doctrine-held at spawn; launches only on CommitReserve
     }
 
     /// <summary>
@@ -51,6 +52,8 @@ namespace Hellfire.Sim
         public readonly int[] DeathTick;
         /// <summary>Swarm-level mission-abort latch (doctrine loss threshold).</summary>
         public bool Aborted;
+        /// <summary>FallBack interrupt: agents head home while Tick &lt; this.</summary>
+        public int RecallUntilTick;
 
         public SimState(int agentCount)
         {
@@ -67,7 +70,7 @@ namespace Hellfire.Sim
 
         public SimState Clone()
         {
-            var c = new SimState(AgentCount) { Tick = Tick, Aborted = Aborted };
+            var c = new SimState(AgentCount) { Tick = Tick, Aborted = Aborted, RecallUntilTick = RecallUntilTick };
             Array.Copy(PosX, c.PosX, AgentCount);
             Array.Copy(PosY, c.PosY, AgentCount);
             Array.Copy(VelX, c.VelX, AgentCount);
@@ -106,6 +109,7 @@ namespace Hellfire.Sim
             h = FnvInt(h, Tick, prime);
             h = FnvInt(h, AgentCount, prime);
             h = FnvInt(h, Aborted ? 1 : 0, prime);
+            h = FnvInt(h, RecallUntilTick, prime);
             h = FnvArray(h, PosX, prime);
             h = FnvArray(h, PosY, prime);
             h = FnvArray(h, VelX, prime);

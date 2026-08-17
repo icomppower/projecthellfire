@@ -41,7 +41,11 @@ namespace Hellfire.Sim
         // EW: jammers strip network share inside their radius (binary, for
         // diagnosability — "you were inside jammer 2" beats a falloff curve).
         public const int JammerCountMin = 0;
-        public const int JammerCountMax = 4;
+        // Widened 4 → 6 at step 6 (round-3 flag): with a 0–4 draw the autonomy
+        // dial was ~inert in the scored environment (d = 0.09) because heavy-EW
+        // worlds were too rare to price in. 0–6 spans "no EW" to "saturated",
+        // so how much thinking you delegate is a bet that can actually lose.
+        public const int JammerCountMax = 6;
         public const float JammerRadius = 85f;
 
         public readonly int ThreatCount;
