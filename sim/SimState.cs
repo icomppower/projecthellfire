@@ -2,8 +2,16 @@ using System;
 
 namespace Hellfire.Sim
 {
+    public enum AgentStatus : byte
+    {
+        Active = 0,
+        Dead = 1,
+        Completed = 2, // reached the objective; latched
+        Safe = 3,      // aborted and made it back to the spawn band
+    }
+
     /// <summary>
-    /// Struct-of-arrays agent storage — flat float arrays, no per-agent objects.
+    /// Struct-of-arrays agent storage — flat arrays, no per-agent objects.
     /// This exact layout is what the step-5 DOTS port is measured against (H1).
     /// </summary>
     public sealed class SimState
@@ -14,6 +22,9 @@ namespace Hellfire.Sim
         public readonly float[] PosY;
         public readonly float[] VelX;
         public readonly float[] VelY;
+        public readonly byte[] Status;
+        /// <summary>Swarm-level mission-abort latch (doctrine loss threshold).</summary>
+        public bool Aborted;
 
         public SimState(int agentCount)
         {
@@ -23,16 +34,26 @@ namespace Hellfire.Sim
             PosY = new float[agentCount];
             VelX = new float[agentCount];
             VelY = new float[agentCount];
+            Status = new byte[agentCount];
         }
 
         public SimState Clone()
         {
-            var c = new SimState(AgentCount) { Tick = Tick };
+            var c = new SimState(AgentCount) { Tick = Tick, Aborted = Aborted };
             Array.Copy(PosX, c.PosX, AgentCount);
             Array.Copy(PosY, c.PosY, AgentCount);
             Array.Copy(VelX, c.VelX, AgentCount);
             Array.Copy(VelY, c.VelY, AgentCount);
+            Array.Copy(Status, c.Status, AgentCount);
             return c;
+        }
+
+        public int CountStatus(AgentStatus s)
+        {
+            byte b = (byte)s;
+            int n = 0;
+            for (int i = 0; i < AgentCount; i++) { if (Status[i] == b) n++; }
+            return n;
         }
 
         /// <summary>
@@ -46,10 +67,15 @@ namespace Hellfire.Sim
             ulong h = offset;
             h = FnvInt(h, Tick, prime);
             h = FnvInt(h, AgentCount, prime);
+            h = FnvInt(h, Aborted ? 1 : 0, prime);
             h = FnvArray(h, PosX, prime);
             h = FnvArray(h, PosY, prime);
             h = FnvArray(h, VelX, prime);
             h = FnvArray(h, VelY, prime);
+            unchecked
+            {
+                for (int i = 0; i < Status.Length; i++) { h = (h ^ Status[i]) * prime; }
+            }
             return h;
         }
 

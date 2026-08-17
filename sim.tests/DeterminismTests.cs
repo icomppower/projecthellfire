@@ -9,18 +9,16 @@ namespace Hellfire.Sim.Tests
         [Test]
         public void SameSeed_TwoRuns_ByteIdenticalFinalHash()
         {
-            var doctrine = Doctrine.Default;
-            var a = Simulation.Run(seed: 42UL, agentCount: 256, ticks: 500, in doctrine);
-            var b = Simulation.Run(seed: 42UL, agentCount: 256, ticks: 500, in doctrine);
+            var a = Simulation.Run(seed: 42UL, agentCount: 96, maxTicks: 500, Doctrine.Default);
+            var b = Simulation.Run(seed: 42UL, agentCount: 96, maxTicks: 500, Doctrine.Default);
             Assert.That(b.StateHash(), Is.EqualTo(a.StateHash()));
         }
 
         [Test]
         public void DifferentSeeds_DifferentFinalHash()
         {
-            var doctrine = Doctrine.Default;
-            var a = Simulation.Run(seed: 1UL, agentCount: 256, ticks: 200, in doctrine);
-            var b = Simulation.Run(seed: 2UL, agentCount: 256, ticks: 200, in doctrine);
+            var a = Simulation.Run(seed: 1UL, agentCount: 96, maxTicks: 200, Doctrine.Default);
+            var b = Simulation.Run(seed: 2UL, agentCount: 96, maxTicks: 200, Doctrine.Default);
             Assert.That(b.StateHash(), Is.Not.EqualTo(a.StateHash()));
         }
 
@@ -28,16 +26,16 @@ namespace Hellfire.Sim.Tests
         public void TickIsPure_SameInputsSameOutput_FromMidEpisodeState()
         {
             var doctrine = Doctrine.Default;
-            var sim = new Simulation(256);
-            var state = Simulation.CreateInitialState(256, seed: 7UL);
-            for (int t = 0; t < 100; t++) sim.Tick(state, in doctrine, 7UL);
+            var sim = new Simulation(96, seed: 7UL);
+            var state = Simulation.CreateInitialState(96, seed: 7UL);
+            for (int t = 0; t < 100; t++) sim.Tick(state, doctrine, 7UL);
 
             var copyA = state.Clone();
             var copyB = state.Clone();
-            var simA = new Simulation(256);
-            var simB = new Simulation(256);
-            simA.Tick(copyA, in doctrine, 7UL);
-            simB.Tick(copyB, in doctrine, 7UL);
+            var simA = new Simulation(96, seed: 7UL);
+            var simB = new Simulation(96, seed: 7UL);
+            simA.Tick(copyA, doctrine, 7UL);
+            simB.Tick(copyB, doctrine, 7UL);
             Assert.That(copyB.StateHash(), Is.EqualTo(copyA.StateHash()));
         }
 
@@ -45,13 +43,9 @@ namespace Hellfire.Sim.Tests
         public void DoctrineChange_ChangesOutcome()
         {
             var baseline = Doctrine.Default;
-            var altered = new Doctrine(
-                jitterAccel: baseline.JitterAccel,
-                neighborRadius: baseline.NeighborRadius,
-                crowdDampPerNeighbor: baseline.CrowdDampPerNeighbor + 0.01f,
-                maxSpeed: baseline.MaxSpeed);
-            var a = Simulation.Run(seed: 9UL, agentCount: 256, ticks: 300, in baseline);
-            var b = Simulation.Run(seed: 9UL, agentCount: 256, ticks: 300, in altered);
+            var altered = new Doctrine { RiskTolerance = baseline.RiskTolerance + 0.1f };
+            var a = Simulation.Run(seed: 9UL, agentCount: 96, maxTicks: 300, baseline);
+            var b = Simulation.Run(seed: 9UL, agentCount: 96, maxTicks: 300, altered);
             Assert.That(b.StateHash(), Is.Not.EqualTo(a.StateHash()));
         }
     }
