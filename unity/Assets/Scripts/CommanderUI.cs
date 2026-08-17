@@ -29,20 +29,30 @@ namespace Hellfire.Presentation
             _driver = GetComponent<SimDriver>();
         }
 
+        private bool _menuOpen;
+        private float _prevTimeScale = 1f;
+
         private void OnGUI()
         {
             // IMGUI event, not Input.*: works under either input backend, and in
-            // a fullscreen player build ESC is the expected way out.
+            // a fullscreen player build ESC is the expected way in/out.
             var ev = Event.current;
             if (ev.type == EventType.KeyDown && ev.keyCode == KeyCode.Escape)
             {
-                Application.Quit();
+                if (_menuOpen) CloseMenu(); else OpenMenu();
+                ev.Use();
+            }
+
+            if (_menuOpen)
+            {
+                DrawMenu();
+                return; // menu replaces the panel; the sim is held at time ×0
             }
 
             GUILayout.BeginArea(new Rect(12, 12, 320, Screen.height - 24), GUI.skin.box);
             GUILayout.Label("<b>PROJECT HELLFIRE</b> — swarm transit through an air-defense belt",
                 new GUIStyle(GUI.skin.label) { richText = true, wordWrap = true });
-            GUILayout.Label("ESC quits", new GUIStyle(GUI.skin.label)
+            GUILayout.Label("ESC — menu", new GUIStyle(GUI.skin.label)
             {
                 fontSize = 10,
                 normal = { textColor = new Color(1f, 1f, 1f, 0.45f) },
@@ -132,6 +142,46 @@ namespace Hellfire.Presentation
                 GUILayout.Space(6);
                 if (GUILayout.Button("NEW RUN", GUILayout.Height(30))) Relaunch();
             }
+        }
+
+        private void OpenMenu()
+        {
+            _menuOpen = true;
+            _prevTimeScale = _driver.timeScale;
+            _driver.timeScale = 0f; // hold the run while the menu is up
+        }
+
+        private void CloseMenu()
+        {
+            _menuOpen = false;
+            _driver.timeScale = _prevTimeScale;
+        }
+
+        private void DrawMenu()
+        {
+            var rect = new Rect(Screen.width * 0.5f - 160f, Screen.height * 0.5f - 110f, 320f, 220f);
+            GUILayout.BeginArea(rect, GUI.skin.box);
+            GUILayout.Space(10);
+            GUILayout.Label("<b>PAUSED</b>", new GUIStyle(GUI.skin.label)
+            {
+                richText = true,
+                fontSize = 18,
+                alignment = TextAnchor.MiddleCenter,
+            });
+            if (_driver.Running && !_driver.Finished)
+            {
+                GUILayout.Label("Run held — doctrine stays locked (§1).", new GUIStyle(GUI.skin.label)
+                {
+                    wordWrap = true,
+                    alignment = TextAnchor.MiddleCenter,
+                });
+            }
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("RESUME  (ESC)", GUILayout.Height(36))) CloseMenu();
+            GUILayout.Space(6);
+            if (GUILayout.Button("QUIT GAME", GUILayout.Height(36))) Application.Quit();
+            GUILayout.Space(10);
+            GUILayout.EndArea();
         }
 
         private void DrawDiagnosis(SimState s)
