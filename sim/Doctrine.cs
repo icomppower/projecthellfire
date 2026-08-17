@@ -33,6 +33,16 @@ namespace Hellfire.Sim
         // aborts and every non-completed agent turns for home.
         public float AbortLossFraction { get; set; } = 0.5f;
 
+        // --- Formation ---
+        // 0 = loose swarm (agents transit independently), 1 = tight flock
+        // (cohesion pulls the group together — including toward danger the
+        // group is already in: herd risk is the intended emergent cost).
+        // MEASURED INERT at the 500-seed gate (2026-08-16): the scenario has no
+        // mutual-support benefit to weigh against herd risk, so this axis does
+        // not move outcomes above seed noise. Wired but not player-offered
+        // until a supporting mechanism exists.
+        public float Cohesion { get; set; } = 0.5f;
+
         // --- Movement envelope (carried over from step 1) ---
         public float MaxSpeed { get; set; } = 30f;
         public float NeighborRadius { get; set; } = 12f;
@@ -56,11 +66,17 @@ namespace Hellfire.Sim
                 case "silent": return new Doctrine { CommsDiscipline = 1.0f };
                 case "centralized": return new Doctrine { Autonomy = 0.0f };
                 case "decentralized": return new Doctrine { Autonomy = 1.0f };
+                case "tight-flock": return new Doctrine { Cohesion = 1.0f };
+                case "loose-swarm": return new Doctrine { Cohesion = 0.0f };
+                // The predicted self-defeating combination: full network reliance
+                // with the comms posture that starves the network.
+                case "silent-centralized": return new Doctrine { Autonomy = 0.0f, CommsDiscipline = 1.0f };
                 default: throw new System.ArgumentException($"unknown preset '{name}'", nameof(name));
             }
         }
 
         public static readonly string[] PresetNames =
-            { "default", "aggressive", "cautious", "chatty", "silent", "centralized", "decentralized" };
+            { "default", "aggressive", "cautious", "chatty", "silent", "centralized", "decentralized",
+              "tight-flock", "loose-swarm", "silent-centralized" };
     }
 }

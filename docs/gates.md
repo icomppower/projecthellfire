@@ -22,9 +22,24 @@ Run locally: `dotnet test -c Release` then `dotnet run -c Release --project tool
 
 Scorer: `dotnet run -c Release --project tools -- grid --seeds 100` or `score --preset <name>` / `score --doctrine file.json`.
 
-## Step 3 — emergence kill gate
+## Step 3 — emergence kill gate — PASSED 2026-08-16 (with logged caveats)
 
-Change one doctrine value, run 500 seeds. The outcome delta must surprise *and* explain itself. Unreadable emergence kills the project.
+Protocol: change one doctrine value, run 500 seeds (`tools -- emergence --seeds 500`). The outcome delta must surprise *and* explain itself. Unreadable emergence kills the project.
+
+Result: gate does not fire — every single-axis delta is diagnosed by the death-cause
+attribution layer (§2 contract: `Scorer.Diagnose`, never empty on a lossy run).
+Highlights: risk 0.5→0.65 triggers an abort cascade (survival −6.4 pts, aborts
+44%→67%); early abort is composite-neutral (d=0.04) while swinging survival +7.4
+vs completion −4.4; comms is the strongest axis (d=0.91 silent, d=0.73 chatty).
+
+Caveats (logged, not tuned — fix rounds were spent):
+- Autonomy dial: live under saturated EW (survival t>2 at 6 jammers; §1 inversion
+  holds — jamming makes centralization *worse* than never networking, via the
+  dependency penalty), but ~inert (d=0.09) in the default seeded 0–4 jammer
+  environment. Environment-distribution decision deferred to step 6.
+- Cohesion axis: measured inert (t=1.13 at 500 seeds, flat in N) — negative
+  result; no mutual-support mechanism exists to weigh against herd risk. Wired
+  but not player-offered.
 
 ## Convergence exits (never improvise new ones)
 

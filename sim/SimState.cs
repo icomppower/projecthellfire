@@ -11,6 +11,29 @@ namespace Hellfire.Sim
     }
 
     /// <summary>
+    /// Death-cause flags recorded at the kill tick — the raw material of the §2
+    /// diagnosability contract: every loss must map back to a doctrine parameter.
+    /// Non-exclusive; a death can carry several.
+    /// </summary>
+    [Flags]
+    public enum DeathFlag : byte
+    {
+        None = 0,
+        /// <summary>Killer was outside the agent's knowledge radius → autonomy /
+        /// sensor axis (blind, or network-stripped — see Jammed).</summary>
+        UnknownThreat = 1,
+        /// <summary>Agent was inside a jammer zone → over-reliance on network
+        /// (autonomy too low for the EW environment).</summary>
+        Jammed = 2,
+        /// <summary>Kill proximity only existed because of the chatty-comms
+        /// engage-radius extension → comms discipline axis.</summary>
+        Detected = 4,
+        /// <summary>Killer was known and the agent was in its kill zone anyway →
+        /// risk tolerance (or cohesion dragging the flock through danger).</summary>
+        PressedKnown = 8,
+    }
+
+    /// <summary>
     /// Struct-of-arrays agent storage — flat arrays, no per-agent objects.
     /// This exact layout is what the step-5 DOTS port is measured against (H1).
     /// </summary>
@@ -23,6 +46,9 @@ namespace Hellfire.Sim
         public readonly float[] VelX;
         public readonly float[] VelY;
         public readonly byte[] Status;
+        public readonly byte[] DeathFlags;
+        /// <summary>Tick+1 at which the agent died; 0 = never died.</summary>
+        public readonly int[] DeathTick;
         /// <summary>Swarm-level mission-abort latch (doctrine loss threshold).</summary>
         public bool Aborted;
 
@@ -35,6 +61,8 @@ namespace Hellfire.Sim
             VelX = new float[agentCount];
             VelY = new float[agentCount];
             Status = new byte[agentCount];
+            DeathFlags = new byte[agentCount];
+            DeathTick = new int[agentCount];
         }
 
         public SimState Clone()
@@ -45,6 +73,8 @@ namespace Hellfire.Sim
             Array.Copy(VelX, c.VelX, AgentCount);
             Array.Copy(VelY, c.VelY, AgentCount);
             Array.Copy(Status, c.Status, AgentCount);
+            Array.Copy(DeathFlags, c.DeathFlags, AgentCount);
+            Array.Copy(DeathTick, c.DeathTick, AgentCount);
             return c;
         }
 
@@ -53,6 +83,14 @@ namespace Hellfire.Sim
             byte b = (byte)s;
             int n = 0;
             for (int i = 0; i < AgentCount; i++) { if (Status[i] == b) n++; }
+            return n;
+        }
+
+        public int CountDeathFlag(DeathFlag f)
+        {
+            byte b = (byte)f;
+            int n = 0;
+            for (int i = 0; i < AgentCount; i++) { if ((DeathFlags[i] & b) != 0) n++; }
             return n;
         }
 
@@ -75,7 +113,9 @@ namespace Hellfire.Sim
             unchecked
             {
                 for (int i = 0; i < Status.Length; i++) { h = (h ^ Status[i]) * prime; }
+                for (int i = 0; i < DeathFlags.Length; i++) { h = (h ^ DeathFlags[i]) * prime; }
             }
+            for (int i = 0; i < DeathTick.Length; i++) { h = FnvInt(h, DeathTick[i], prime); }
             return h;
         }
 

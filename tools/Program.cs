@@ -25,6 +25,7 @@ namespace Hellfire.Tools
                 case "gate": return Gate(opts);
                 case "score": return ScoreOne(opts);
                 case "grid": return Grid(opts);
+                case "emergence": return Emergence(opts);
                 default:
                     Console.Error.WriteLine($"unknown mode '{mode}'");
                     return 2;
@@ -136,6 +137,63 @@ namespace Hellfire.Tools
             }
             Console.WriteLine($"\ngrid wall-clock: {sw.Elapsed.TotalSeconds:F2}s for {reports.Length} doctrines x {seeds} seeds");
             return 0;
+        }
+
+        /// <summary>
+        /// The step-3 kill-gate protocol: change ONE doctrine value, run the seeds,
+        /// and lay the outcome delta beside its death-cause signature so the
+        /// surprise (if any) explains itself.
+        /// </summary>
+        private static int Emergence(System.Collections.Generic.Dictionary<string, string> o)
+        {
+            int seeds = GetInt(o, "--seeds", 500);
+            var sw = Stopwatch.StartNew();
+            var baseline = Scorer.Score(Doctrine.Default, "baseline", 5000UL, seeds);
+            PrintReport(baseline, null);
+
+            var variants = new (string Label, Doctrine D)[]
+            {
+                ("Autonomy 0.5 -> 0.05", new Doctrine { Autonomy = 0.05f }),
+                ("Autonomy 0.5 -> 0.95", new Doctrine { Autonomy = 0.95f }),
+                ("RiskTolerance 0.5 -> 0.65", new Doctrine { RiskTolerance = 0.65f }),
+                ("CommsDiscipline 0.5 -> 1.0", new Doctrine { CommsDiscipline = 1.0f }),
+                ("CommsDiscipline 0.5 -> 0.0", new Doctrine { CommsDiscipline = 0.0f }),
+                ("Cohesion 0.5 -> 0.95", new Doctrine { Cohesion = 0.95f }),
+                ("AbortLossFraction 0.5 -> 0.35", new Doctrine { AbortLossFraction = 0.35f }),
+            };
+            foreach (var (label, doctrine) in variants)
+            {
+                var r = Scorer.Score(doctrine, label, 5000UL, seeds);
+                PrintReport(r, baseline);
+            }
+            Console.WriteLine($"\nemergence wall-clock: {sw.Elapsed.TotalSeconds:F2}s ({variants.Length + 1} doctrines x {seeds} seeds)");
+            return 0;
+        }
+
+        private static void PrintReport(FitnessReport r, FitnessReport? baseline)
+        {
+            Console.WriteLine($"\n=== {r.Name} ===");
+            string delta(float v, float b) => $"{v:F3} ({v - b:+0.000;-0.000})";
+            if (baseline == null)
+            {
+                Console.WriteLine($"composite {r.MeanComposite:F3} ± {r.StdComposite:F3}  " +
+                                  $"survival {r.MeanSurvival:F3}  completion {r.MeanCompletion:F3}  " +
+                                  $"aborts {r.AbortRate:P0}  stragglers {r.MeanStragglers:F3}");
+            }
+            else
+            {
+                Console.WriteLine($"composite {delta(r.MeanComposite, baseline.MeanComposite)}  " +
+                                  $"survival {delta(r.MeanSurvival, baseline.MeanSurvival)}  " +
+                                  $"completion {delta(r.MeanCompletion, baseline.MeanCompletion)}  " +
+                                  $"aborts {r.AbortRate:P0} (base {baseline.AbortRate:P0})  " +
+                                  $"d = {Scorer.EffectSize(r, baseline):F2}");
+            }
+            Console.WriteLine($"deaths {r.TotalDeaths}: unknown {r.DeathShareUnknown:P0}  jammed {r.DeathShareJammed:P0}  " +
+                              $"detected {r.DeathShareDetected:P0}  pressed {r.DeathSharePressed:P0}");
+            foreach (var (param, share, evidence) in Scorer.Diagnose(r))
+            {
+                Console.WriteLine($"  -> {param}: {share:P0} — {evidence}");
+            }
         }
     }
 }

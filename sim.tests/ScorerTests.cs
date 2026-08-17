@@ -61,20 +61,25 @@ namespace Hellfire.Sim.Tests
         }
 
         [Test]
-        public void Probe_CommsDiscipline_SilenceImprovesSurvival()
+        public void Probe_CommsDiscipline_SilenceImprovesSurvival_WhenNetworkUnused()
         {
-            var chatty = Scorer.Score(Doctrine.Preset("chatty"), "chatty", Seed0, Seeds);
-            var silent = Scorer.Score(Doctrine.Preset("silent"), "silent", Seed0, Seeds);
+            // Pinned to autonomy=1 so comms has no knowledge cost (network share is
+            // zero either way) — isolating the detectability mechanism. At lower
+            // autonomy the axis is deliberately a tradeoff, probed in EmergenceTests.
+            var chatty = Scorer.Score(new Doctrine { Autonomy = 1f, CommsDiscipline = 0f }, "chatty", Seed0, Seeds);
+            var silent = Scorer.Score(new Doctrine { Autonomy = 1f, CommsDiscipline = 1f }, "silent", Seed0, Seeds);
             Assert.That(silent.MeanSurvival, Is.GreaterThan(chatty.MeanSurvival),
                 $"silent {silent.MeanSurvival:F3} vs chatty {chatty.MeanSurvival:F3}");
         }
 
         [Test]
-        public void Probe_Autonomy_CentralizedKnowledgeHelps_PreJamming()
+        public void Probe_Autonomy_CentralizedKnowledgeHelps_JamFree()
         {
-            // Step-2 expectation only: jamming (step 3) supplies the counterweight.
-            var central = Scorer.Score(Doctrine.Preset("centralized"), "centralized", Seed0, Seeds);
-            var distrib = Scorer.Score(Doctrine.Preset("decentralized"), "decentralized", Seed0, Seeds);
+            // In a jam-free world the network is pure upside; the counterweight
+            // (jamming) is probed in EmergenceTests.
+            var jamFree = new ScenarioConfig { JammerCount = 0 };
+            var central = Scorer.Score(Doctrine.Preset("centralized"), "centralized", Seed0, Seeds, config: jamFree);
+            var distrib = Scorer.Score(Doctrine.Preset("decentralized"), "decentralized", Seed0, Seeds, config: jamFree);
             Assert.That(central.MeanSurvival, Is.GreaterThan(distrib.MeanSurvival),
                 $"centralized {central.MeanSurvival:F3} vs decentralized {distrib.MeanSurvival:F3}");
         }
