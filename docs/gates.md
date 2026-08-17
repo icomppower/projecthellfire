@@ -41,9 +41,13 @@ Caveats (logged, not tuned — fix rounds were spent):
   result; no mutual-support mechanism exists to weigh against herd risk. Wired
   but not player-offered.
 
-## Step 4 — presentation layer (gate self-defined; GDD names none)
+## Step 4 — presentation layer — PASSED 2026-08-17, zero fix rounds
 
-Runner: `tools/run-unity-gates.sh` (needs an activated Unity license — open Unity Hub, sign in once).
+Runner: `tools/run-unity-gates.sh`. All gates green on the first licensed run:
+compile exit 0 / 0 errors; §3 parity byte-identical; bootstrap generates the
+scene headlessly; dotnet 24/24. H3 first data: warm Unity round ~16 s vs ~11 s
+.NET baseline (~1.5–2×; pre-registered prediction was 15–60×, falsifier <5×) —
+preliminary, real loop rounds at steps 5–6 decide.
 
 1. Headless compile: batchmode exit 0, zero `error CS`.
 2. §3 invariant from inside Unity: EditMode test proves SimDriver's 600-tick state hash is byte-identical to the headless .NET path.
