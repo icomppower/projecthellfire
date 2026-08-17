@@ -25,6 +25,15 @@ namespace Hellfire.Presentation
         public Color gridColor = new Color(1f, 1f, 1f, 0.045f);
         /// <summary>Assigned by SceneBootstrap — see SwarmRenderer.material.</summary>
         public Material material;
+        /// <summary>Emplacement models (Kenney CC0, baked by SceneBootstrap):
+        /// gun/SAM turrets on the threats, EW dishes on the jammers. World scale
+        /// applied to the unit-normalized baked meshes.</summary>
+        public const float TurretSize = 14f;
+        public const float DishSize = 18f;
+        public Mesh turretMesh;
+        public Material[] turretMaterials;
+        public Mesh dishMesh;
+        public Material[] dishMaterials;
 
         private SimDriver _driver;
         private Simulation _builtFor;
@@ -39,6 +48,8 @@ namespace Hellfire.Presentation
         private readonly List<Vector4> _ringC = new List<Vector4>();
         private readonly List<Matrix4x4> _quadM = new List<Matrix4x4>();
         private readonly List<Vector4> _quadC = new List<Vector4>();
+        private readonly List<Matrix4x4> _turretM = new List<Matrix4x4>();
+        private readonly List<Matrix4x4> _dishM = new List<Matrix4x4>();
         private static readonly int ColorProp = Shader.PropertyToID("_BaseColor");
 
         private void Awake()
@@ -65,6 +76,24 @@ namespace Hellfire.Presentation
             Draw(_quad, _quadM, _quadC);
             Draw(_disc, _discM, _discC);
             Draw(_ring, _ringM, _ringC);
+            DrawModel(turretMesh, turretMaterials, _turretM);
+            DrawModel(dishMesh, dishMaterials, _dishM);
+        }
+
+        /// <summary>Lit, shadowed, instanced — one draw per submesh so the baked
+        /// flat colors survive.</summary>
+        private static void DrawModel(Mesh mesh, Material[] mats, List<Matrix4x4> m)
+        {
+            if (mesh == null || mats == null || mats.Length == 0 || m.Count == 0) return;
+            int subs = Mathf.Min(mesh.subMeshCount, mats.Length);
+            for (int s = 0; s < subs; s++)
+            {
+                var rp = new RenderParams(mats[s])
+                {
+                    shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On,
+                };
+                Graphics.RenderMeshInstanced(rp, mesh, s, m, m.Count);
+            }
         }
 
         private void Draw(Mesh mesh, List<Matrix4x4> m, List<Vector4> c)
@@ -82,14 +111,35 @@ namespace Hellfire.Presentation
             _discM.Clear(); _discC.Clear();
             _ringM.Clear(); _ringC.Clear();
             _quadM.Clear(); _quadC.Clear();
+            _turretM.Clear(); _dishM.Clear();
+
+            // Emplacement models: turrets face south toward the incoming swarm,
+            // with a per-site deterministic yaw wobble so the belt doesn't look
+            // stamped; dishes at the EW sites.
+            for (int t = 0; t < sc.ThreatCount; t++)
+            {
+                float yaw = 180f + (((t * 73) % 21) - 10f);
+                _turretM.Add(Matrix4x4.TRS(
+                    new Vector3(sc.ThreatX[t], 0f, sc.ThreatY[t]),
+                    Quaternion.Euler(0f, yaw, 0f),
+                    new Vector3(TurretSize, TurretSize, TurretSize)));
+            }
+            for (int j = 0; j < sc.JammerCount; j++)
+            {
+                float yaw = (j * 61) % 360;
+                _dishM.Add(Matrix4x4.TRS(
+                    new Vector3(sc.JammerX[j], 0f, sc.JammerY[j]),
+                    Quaternion.Euler(0f, yaw, 0f),
+                    new Vector3(DishSize, DishSize, DishSize)));
+            }
 
             // Map grid, every 64 units — the command-display ground.
             for (int g = 0; g <= 8; g++)
             {
                 float p = g * 64f;
-                AddQuad(new Vector3(p, 0.02f, Simulation.WorldHeight * 0.5f),
+                AddQuad(new Vector3(p, 0.12f, Simulation.WorldHeight * 0.5f),
                         new Vector3(0.9f, 1f, Simulation.WorldHeight), gridColor);
-                AddQuad(new Vector3(Simulation.WorldWidth * 0.5f, 0.02f, p),
+                AddQuad(new Vector3(Simulation.WorldWidth * 0.5f, 0.12f, p),
                         new Vector3(Simulation.WorldWidth, 1f, 0.9f), gridColor);
             }
 
@@ -112,26 +162,26 @@ namespace Hellfire.Presentation
             // Objective: target reticle — ring + crosshair, no puddle.
             AddRing(Scenario.ObjectiveX, Scenario.ObjectiveY, Scenario.ObjectiveRadius, objectiveColor);
             AddRing(Scenario.ObjectiveX, Scenario.ObjectiveY, Scenario.ObjectiveRadius * 0.55f, objectiveColor);
-            AddQuad(new Vector3(Scenario.ObjectiveX, 0.04f, Scenario.ObjectiveY),
+            AddQuad(new Vector3(Scenario.ObjectiveX, 0.22f, Scenario.ObjectiveY),
                     new Vector3(Scenario.ObjectiveRadius * 2.4f, 1f, 1.1f), objectiveColor);
-            AddQuad(new Vector3(Scenario.ObjectiveX, 0.04f, Scenario.ObjectiveY),
+            AddQuad(new Vector3(Scenario.ObjectiveX, 0.22f, Scenario.ObjectiveY),
                     new Vector3(1.1f, 1f, Scenario.ObjectiveRadius * 2.4f), objectiveColor);
 
             // Launch line at the top of the spawn band.
-            AddQuad(new Vector3(Simulation.WorldWidth * 0.5f, 0.03f, Scenario.SpawnBandHeight),
+            AddQuad(new Vector3(Simulation.WorldWidth * 0.5f, 0.18f, Scenario.SpawnBandHeight),
                     new Vector3(Simulation.WorldWidth, 1f, 1.4f), spawnLine);
         }
 
         private void AddDisc(float x, float y, float radius, Color c)
         {
-            _discM.Add(Matrix4x4.TRS(new Vector3(x, 0.05f, y), Quaternion.identity,
+            _discM.Add(Matrix4x4.TRS(new Vector3(x, 0.2f, y), Quaternion.identity,
                                      new Vector3(radius * 2f, 1f, radius * 2f)));
             _discC.Add(c);
         }
 
         private void AddRing(float x, float y, float radius, Color c)
         {
-            _ringM.Add(Matrix4x4.TRS(new Vector3(x, 0.06f, y), Quaternion.identity,
+            _ringM.Add(Matrix4x4.TRS(new Vector3(x, 0.25f, y), Quaternion.identity,
                                      new Vector3(radius * 2f, 1f, radius * 2f)));
             _ringC.Add(c);
         }

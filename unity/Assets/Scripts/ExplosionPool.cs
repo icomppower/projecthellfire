@@ -48,20 +48,27 @@ namespace Hellfire.Presentation
             var main = ps.main;
             main.playOnAwake = false;
             main.loop = false;
-            main.duration = 0.6f;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.25f, 0.6f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(8f, 26f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.8f, 2.2f);
-            main.startColor = flashColor;
-            main.maxParticles = 64;
+            main.duration = 1.2f;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.35f, 1.1f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(10f, 42f);
+            main.startSize = new ParticleSystem.MinMaxCurve(1.6f, 4.5f);
+            // HDR white-hot core — the additive material + bloom turn this into
+            // an actual fireball instead of a confetti puff.
+            main.startColor = new Color(2.2f, 1.4f, 0.7f);
+            main.maxParticles = 160;
+            main.gravityModifier = 0.35f;
 
             var emission = ps.emission;
             emission.rateOverTime = 0f;
-            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 40) });
+            emission.SetBursts(new[]
+            {
+                new ParticleSystem.Burst(0f, 90),
+                new ParticleSystem.Burst(0.08f, 30),
+            });
 
             var shape = ps.shape;
             shape.shapeType = ParticleSystemShapeType.Sphere;
-            shape.radius = 0.4f;
+            shape.radius = 1.2f;
 
             var col = ps.colorOverLifetime;
             col.enabled = true;
