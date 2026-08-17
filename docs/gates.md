@@ -73,6 +73,19 @@ floats — `CompileSynchronously = true` is a determinism requirement.
 Decision: presentation keeps the managed sim; DOTS stays a measured
 capability, not a foundation.
 
+## Step 6 — player layer — DONE 2026-08-17. Build order complete; stop.
+
+Premise: swarm transit through an integrated air-defense belt. EW draw 0–6
+(round-3 flag closed: the autonomy bet's value is conditional by design —
+heavy-EW inversion t>2, jam-free centralized advantage; mixture mean modest).
+Interrupts (§1): ABORT / FALL BACK (600 ticks) / COMMIT RESERVE — sim-core,
+tick-stamped, max 3, replay = (seed, doctrine, plan); ReserveFraction is a new
+doctrine axis (default 0, prior baselines intact). CommanderUI: doctrine locks
+at launch; post-run §2 diagnosis names parameters. macOS app builds green
+(`tools/run-unity-gates.sh --build`, 109 MB). Suites: dotnet 31/31, EditMode
+5/5, dots 3/3. Emergent headline: silent-centralized is the top doctrine in
+the 0–6 world (0.355 composite).
+
 ## Convergence exits (never improvise new ones)
 
 Target met · plateau <0.15 ×2 · regression ×2 · oscillation ×3 · hard budget cap.
