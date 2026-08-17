@@ -41,6 +41,18 @@ Caveats (logged, not tuned — fix rounds were spent):
   result; no mutual-support mechanism exists to weigh against herd risk. Wired
   but not player-offered.
 
+## Step 4 — presentation layer (gate self-defined; GDD names none)
+
+Runner: `tools/run-unity-gates.sh` (needs an activated Unity license — open Unity Hub, sign in once).
+
+1. Headless compile: batchmode exit 0, zero `error CS`.
+2. §3 invariant from inside Unity: EditMode test proves SimDriver's 600-tick state hash is byte-identical to the headless .NET path.
+3. Procedural bootstrap generates `Assets/Scenes/Main.unity` + URP assets headlessly (scenes are built, never hand-edited).
+4. `dotnet test` still green (sim untouched by Unity packaging).
+5. Record per-stage wall-clock — the first H3 Unity-round numbers, against the ~11 s .NET baseline.
+
+Scope deviation, logged: VFX Graph explosions are editor-authored graphs (hand-writing .vfx YAML sits in the same corruption category as .unity edits) — code-configured ParticleSystem pool ships instead; VFX Graph reserved for an editor-in-the-loop session (natural H5 test case).
+
 ## Convergence exits (never improvise new ones)
 
 Target met · plateau <0.15 ×2 · regression ×2 · oscillation ×3 · hard budget cap.

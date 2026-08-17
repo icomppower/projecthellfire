@@ -1,0 +1,7 @@
+{
+  "name": "com.hellfire.sim",
+  "version": "0.3.0",
+  "displayName": "Hellfire Sim Core",
+  "description": "Deterministic swarm sim core. Zero UnityEngine references — consumed by Unity as a local package, by dotnet as a class library. The presentation layer reads it and never writes it (GDD §3).",
+  "unity": "6000.0"
+}

@@ -1,0 +1,14 @@
+{
+    "name": "Hellfire.Presentation",
+    "rootNamespace": "Hellfire.Presentation",
+    "references": ["Hellfire.Sim"],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

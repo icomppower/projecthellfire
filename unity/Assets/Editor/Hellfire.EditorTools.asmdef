@@ -1,0 +1,19 @@
+{
+    "name": "Hellfire.EditorTools",
+    "rootNamespace": "Hellfire.EditorTools",
+    "references": [
+        "Hellfire.Sim",
+        "Hellfire.Presentation",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
+    ],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
