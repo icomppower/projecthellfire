@@ -1,36 +1,52 @@
+using System.Collections.Generic;
 using Hellfire.Sim;
 using UnityEngine;
 
 namespace Hellfire.Presentation
 {
     /// <summary>
-    /// Draws the scenario ground truth: threat kill zones, jammer bubbles,
-    /// objective circle, spawn band. Read-only over Simulation.Scenario —
-    /// nothing here is hidden from the player (§2: no hidden information;
-    /// only the *interaction* is incomputable).
+    /// Draws the scenario ground truth in command-display vocabulary — thin
+    /// range rings and center markers rather than filled blobs (playtest
+    /// finding: filled discs read as biology, not as a tactical picture), plus
+    /// a faint map grid, a target reticle, and the launch line. Read-only over
+    /// Simulation.Scenario — nothing here is hidden from the player (§2).
+    /// Geometry rebuilds whenever the driver starts a new run (new seed = new
+    /// emplacements).
     /// </summary>
     [RequireComponent(typeof(SimDriver))]
     public sealed class FieldRenderer : MonoBehaviour
     {
-        public Color threatColor = new Color(1f, 0.35f, 0.2f, 0.22f);
-        public Color jammerColor = new Color(0.7f, 0.4f, 1f, 0.16f);
-        public Color objectiveColor = new Color(0.3f, 1f, 0.5f, 0.25f);
-        public Color spawnColor = new Color(0.4f, 0.7f, 1f, 0.12f);
+        public Color threatRing = new Color(1f, 0.35f, 0.2f, 0.85f);
+        public Color threatFill = new Color(1f, 0.3f, 0.15f, 0.06f);
+        public Color jammerRing = new Color(0.72f, 0.42f, 1f, 0.7f);
+        public Color jammerFill = new Color(0.7f, 0.4f, 1f, 0.05f);
+        public Color objectiveColor = new Color(0.35f, 1f, 0.55f, 0.9f);
+        public Color spawnLine = new Color(0.4f, 0.75f, 1f, 0.5f);
+        public Color gridColor = new Color(1f, 1f, 1f, 0.045f);
         /// <summary>Assigned by SceneBootstrap — see SwarmRenderer.material.</summary>
         public Material material;
 
         private SimDriver _driver;
+        private Simulation _builtFor;
         private Mesh _disc;
+        private Mesh _ring;
+        private Mesh _quad;
         private Material _material;
-        private Matrix4x4[] _matrices;
-        private Vector4[] _colors;
         private MaterialPropertyBlock _props;
+        private readonly List<Matrix4x4> _discM = new List<Matrix4x4>();
+        private readonly List<Vector4> _discC = new List<Vector4>();
+        private readonly List<Matrix4x4> _ringM = new List<Matrix4x4>();
+        private readonly List<Vector4> _ringC = new List<Vector4>();
+        private readonly List<Matrix4x4> _quadM = new List<Matrix4x4>();
+        private readonly List<Vector4> _quadC = new List<Vector4>();
         private static readonly int ColorProp = Shader.PropertyToID("_BaseColor");
 
         private void Awake()
         {
             _driver = GetComponent<SimDriver>();
             _disc = BuildDisc(48);
+            _ring = BuildRing(64, 0.94f);
+            _quad = BuildQuad();
             _material = material;
             if (_material == null)
             {
@@ -44,42 +60,86 @@ namespace Hellfire.Presentation
         {
             var sim = _driver.Sim;
             if (sim == null || _material == null) return;
-            var sc = sim.Scenario;
+            if (!ReferenceEquals(sim, _builtFor)) BuildLayout(sim.Scenario);
 
-            if (_matrices == null)
-            {
-                int count = sc.ThreatCount + sc.JammerCount + 2;
-                _matrices = new Matrix4x4[count];
-                _colors = new Vector4[count];
-                int k = 0;
-                for (int t = 0; t < sc.ThreatCount; t++, k++)
-                {
-                    Fill(k, sc.ThreatX[t], sc.ThreatY[t], Scenario.ThreatKillRadius, threatColor);
-                }
-                for (int j = 0; j < sc.JammerCount; j++, k++)
-                {
-                    Fill(k, sc.JammerX[j], sc.JammerY[j], Scenario.JammerRadius, jammerColor);
-                }
-                Fill(k++, Scenario.ObjectiveX, Scenario.ObjectiveY, Scenario.ObjectiveRadius, objectiveColor);
-                // Spawn band as a stretched disc across the south edge.
-                _matrices[k] = Matrix4x4.TRS(
-                    new Vector3(Simulation.WorldWidth * 0.5f, 0.05f, Scenario.SpawnBandHeight * 0.5f),
-                    Quaternion.identity,
-                    new Vector3(Simulation.WorldWidth, 1f, Scenario.SpawnBandHeight));
-                _colors[k] = spawnColor;
-            }
-
-            _props.SetVectorArray(ColorProp, _colors);
-            var rp = new RenderParams(_material) { matProps = _props };
-            Graphics.RenderMeshInstanced(rp, _disc, 0, _matrices, _matrices.Length);
+            Draw(_quad, _quadM, _quadC);
+            Draw(_disc, _discM, _discC);
+            Draw(_ring, _ringM, _ringC);
         }
 
-        private void Fill(int k, float x, float y, float radius, Color c)
+        private void Draw(Mesh mesh, List<Matrix4x4> m, List<Vector4> c)
         {
-            _matrices[k] = Matrix4x4.TRS(
-                new Vector3(x, 0.05f, y), Quaternion.identity,
-                new Vector3(radius * 2f, 1f, radius * 2f));
-            _colors[k] = c;
+            if (m.Count == 0) return;
+            _props.Clear();
+            _props.SetVectorArray(ColorProp, c);
+            var rp = new RenderParams(_material) { matProps = _props };
+            Graphics.RenderMeshInstanced(rp, mesh, 0, m, m.Count);
+        }
+
+        private void BuildLayout(Scenario sc)
+        {
+            _builtFor = _driver.Sim;
+            _discM.Clear(); _discC.Clear();
+            _ringM.Clear(); _ringC.Clear();
+            _quadM.Clear(); _quadC.Clear();
+
+            // Map grid, every 64 units — the command-display ground.
+            for (int g = 0; g <= 8; g++)
+            {
+                float p = g * 64f;
+                AddQuad(new Vector3(p, 0.02f, Simulation.WorldHeight * 0.5f),
+                        new Vector3(0.9f, 1f, Simulation.WorldHeight), gridColor);
+                AddQuad(new Vector3(Simulation.WorldWidth * 0.5f, 0.02f, p),
+                        new Vector3(Simulation.WorldWidth, 1f, 0.9f), gridColor);
+            }
+
+            // Threat emplacements: kill-radius ring + faint danger fill + marker.
+            for (int t = 0; t < sc.ThreatCount; t++)
+            {
+                AddRing(sc.ThreatX[t], sc.ThreatY[t], Scenario.ThreatKillRadius, threatRing);
+                AddDisc(sc.ThreatX[t], sc.ThreatY[t], Scenario.ThreatKillRadius, threatFill);
+                AddDisc(sc.ThreatX[t], sc.ThreatY[t], 3.5f, threatRing);
+            }
+
+            // EW sites: jam-radius ring + faint fill + marker.
+            for (int j = 0; j < sc.JammerCount; j++)
+            {
+                AddRing(sc.JammerX[j], sc.JammerY[j], Scenario.JammerRadius, jammerRing);
+                AddDisc(sc.JammerX[j], sc.JammerY[j], Scenario.JammerRadius, jammerFill);
+                AddDisc(sc.JammerX[j], sc.JammerY[j], 3f, jammerRing);
+            }
+
+            // Objective: target reticle — ring + crosshair, no puddle.
+            AddRing(Scenario.ObjectiveX, Scenario.ObjectiveY, Scenario.ObjectiveRadius, objectiveColor);
+            AddRing(Scenario.ObjectiveX, Scenario.ObjectiveY, Scenario.ObjectiveRadius * 0.55f, objectiveColor);
+            AddQuad(new Vector3(Scenario.ObjectiveX, 0.04f, Scenario.ObjectiveY),
+                    new Vector3(Scenario.ObjectiveRadius * 2.4f, 1f, 1.1f), objectiveColor);
+            AddQuad(new Vector3(Scenario.ObjectiveX, 0.04f, Scenario.ObjectiveY),
+                    new Vector3(1.1f, 1f, Scenario.ObjectiveRadius * 2.4f), objectiveColor);
+
+            // Launch line at the top of the spawn band.
+            AddQuad(new Vector3(Simulation.WorldWidth * 0.5f, 0.03f, Scenario.SpawnBandHeight),
+                    new Vector3(Simulation.WorldWidth, 1f, 1.4f), spawnLine);
+        }
+
+        private void AddDisc(float x, float y, float radius, Color c)
+        {
+            _discM.Add(Matrix4x4.TRS(new Vector3(x, 0.05f, y), Quaternion.identity,
+                                     new Vector3(radius * 2f, 1f, radius * 2f)));
+            _discC.Add(c);
+        }
+
+        private void AddRing(float x, float y, float radius, Color c)
+        {
+            _ringM.Add(Matrix4x4.TRS(new Vector3(x, 0.06f, y), Quaternion.identity,
+                                     new Vector3(radius * 2f, 1f, radius * 2f)));
+            _ringC.Add(c);
+        }
+
+        private void AddQuad(Vector3 center, Vector3 size, Color c)
+        {
+            _quadM.Add(Matrix4x4.TRS(center, Quaternion.identity, size));
+            _quadC.Add(c);
         }
 
         private static Mesh BuildDisc(int segments)
@@ -96,6 +156,49 @@ namespace Hellfire.Presentation
                 tris[i * 3 + 2] = 1 + i;
             }
             var m = new Mesh { vertices = verts, triangles = tris };
+            m.RecalculateNormals();
+            m.RecalculateBounds();
+            return m;
+        }
+
+        /// <summary>Flat annulus in the XZ plane; innerScale is the inner radius
+        /// as a fraction of the outer — thin outline, the range-ring idiom.</summary>
+        private static Mesh BuildRing(int segments, float innerScale)
+        {
+            var verts = new Vector3[segments * 2];
+            var tris = new int[segments * 6];
+            for (int i = 0; i < segments; i++)
+            {
+                float a = i * Mathf.PI * 2f / segments;
+                float cx = Mathf.Cos(a) * 0.5f;
+                float cz = Mathf.Sin(a) * 0.5f;
+                verts[i * 2] = new Vector3(cx, 0f, cz);
+                verts[i * 2 + 1] = new Vector3(cx * innerScale, 0f, cz * innerScale);
+                int ni = (i + 1) % segments;
+                tris[i * 6] = i * 2;
+                tris[i * 6 + 1] = i * 2 + 1;
+                tris[i * 6 + 2] = ni * 2;
+                tris[i * 6 + 3] = ni * 2;
+                tris[i * 6 + 4] = i * 2 + 1;
+                tris[i * 6 + 5] = ni * 2 + 1;
+            }
+            var m = new Mesh { vertices = verts, triangles = tris };
+            m.RecalculateNormals();
+            m.RecalculateBounds();
+            return m;
+        }
+
+        private static Mesh BuildQuad()
+        {
+            var m = new Mesh
+            {
+                vertices = new[]
+                {
+                    new Vector3(-0.5f, 0f, -0.5f), new Vector3(0.5f, 0f, -0.5f),
+                    new Vector3(-0.5f, 0f, 0.5f), new Vector3(0.5f, 0f, 0.5f),
+                },
+                triangles = new[] { 0, 2, 1, 2, 3, 1 },
+            };
             m.RecalculateNormals();
             m.RecalculateBounds();
             return m;
