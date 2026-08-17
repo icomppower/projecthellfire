@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sim", "sim\Sim.csproj", "{BA77630C-C47C-4420-B22D-DE5CFE02E2AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sim.Tests", "sim.tests\Sim.Tests.csproj", "{F86A4DF8-8290-4C1B-B5B4-C0D83F5B5D1E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harness", "tools\Harness.csproj", "{B1F99ADB-C5D0-482B-A34D-119A41535238}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BA77630C-C47C-4420-B22D-DE5CFE02E2AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA77630C-C47C-4420-B22D-DE5CFE02E2AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA77630C-C47C-4420-B22D-DE5CFE02E2AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA77630C-C47C-4420-B22D-DE5CFE02E2AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F86A4DF8-8290-4C1B-B5B4-C0D83F5B5D1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F86A4DF8-8290-4C1B-B5B4-C0D83F5B5D1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F86A4DF8-8290-4C1B-B5B4-C0D83F5B5D1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F86A4DF8-8290-4C1B-B5B4-C0D83F5B5D1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1F99ADB-C5D0-482B-A34D-119A41535238}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1F99ADB-C5D0-482B-A34D-119A41535238}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1F99ADB-C5D0-482B-A34D-119A41535238}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1F99ADB-C5D0-482B-A34D-119A41535238}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
