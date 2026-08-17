@@ -18,6 +18,7 @@ namespace Hellfire.EditorTools
     /// </summary>
     public static class SceneBootstrap
     {
+        [MenuItem("Hellfire/Rebuild Scene")]
         public static void Build()
         {
             try
@@ -51,6 +52,15 @@ namespace Hellfire.EditorTools
             // --- Default doctrine asset. ---
             var doctrine = ScriptableObject.CreateInstance<DoctrineAsset>();
             AssetDatabase.CreateAsset(doctrine, "Assets/Settings/DefaultDoctrine.asset");
+
+            // --- Materials as ASSETS: a player build only includes shaders that
+            // some built asset references. Runtime Shader.Find returns null in a
+            // player (v1.1's black-screen bug); creating the materials here, at
+            // editor time, and referencing them from the scene ships the shaders.
+            var agentMat = MakeTransparentUnlit("Assets/Settings/AgentMat.mat", 3000);
+            var fieldMat = MakeTransparentUnlit("Assets/Settings/FieldMat.mat", 2900);
+            var boomMat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            AssetDatabase.CreateAsset(boomMat, "Assets/Settings/BoomMat.mat");
 
             // --- Scene. ---
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -94,14 +104,37 @@ namespace Hellfire.EditorTools
             var driver = swarmGo.AddComponent<SimDriver>();
             driver.doctrine = doctrine;
             var explosions = swarmGo.AddComponent<ExplosionPool>();
+            explosions.particleMaterial = boomMat;
             var swarmRenderer = swarmGo.AddComponent<SwarmRenderer>();
             swarmRenderer.explosions = explosions;
-            swarmGo.AddComponent<FieldRenderer>();
+            swarmRenderer.material = agentMat;
+            var fieldRenderer = swarmGo.AddComponent<FieldRenderer>();
+            fieldRenderer.material = fieldMat;
             swarmGo.AddComponent<CommanderUI>();
 
             EditorSceneManager.SaveScene(scene, "Assets/Scenes/Main.unity");
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene("Assets/Scenes/Main.unity", true) };
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>URP Unlit configured for standard alpha transparency — the
+        /// full keyword/blend/tag set; _Surface alone is not sufficient.</summary>
+        private static Material MakeTransparentUnlit(string path, int renderQueue)
+        {
+            var mat = new Material(Shader.Find("Universal Render Pipeline/Unlit"))
+            {
+                enableInstancing = true,
+            };
+            mat.SetFloat("_Surface", 1f);
+            mat.SetFloat("_Blend", 0f);
+            mat.SetOverrideTag("RenderType", "Transparent");
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            mat.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
+            mat.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
+            mat.SetInt("_ZWrite", 0);
+            mat.renderQueue = renderQueue;
+            AssetDatabase.CreateAsset(mat, path);
+            return mat;
         }
 
         private static void EnsureFolder(string path)

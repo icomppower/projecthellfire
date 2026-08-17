@@ -21,6 +21,11 @@ namespace Hellfire.Presentation
         public Color safeColor = new Color(0.45f, 0.6f, 1f);
         public Color jammedTint = new Color(0.7f, 0.4f, 1f);
         public ExplosionPool explosions;
+        /// <summary>Assigned by SceneBootstrap from a saved material asset — a
+        /// runtime Shader.Find would return null in a player build (the shader
+        /// never gets included), which is exactly how v1.1's first build shipped
+        /// a black screen. The asset reference is what pulls the shader in.</summary>
+        public Material material;
 
         private SimDriver _driver;
         private Mesh _mesh;
@@ -35,17 +40,20 @@ namespace Hellfire.Presentation
         {
             _driver = GetComponent<SimDriver>();
             _mesh = BuildQuad();
-            var shader = Shader.Find("Universal Render Pipeline/Unlit");
-            _material = new Material(shader) { enableInstancing = true };
-            _material.SetFloat("_Surface", 1f); // transparent
-            _material.renderQueue = 3000;
+            _material = material;
+            if (_material == null)
+            {
+                // Editor-only fallback; never reachable in a correct build.
+                var shader = Shader.Find("Universal Render Pipeline/Unlit");
+                if (shader != null) _material = new Material(shader) { enableInstancing = true };
+            }
             _props = new MaterialPropertyBlock();
         }
 
         private void LateUpdate()
         {
             var state = _driver.State;
-            if (state == null) return;
+            if (state == null || _material == null) return;
             int n = state.AgentCount;
             if (_matrices == null || _matrices.Length != n)
             {

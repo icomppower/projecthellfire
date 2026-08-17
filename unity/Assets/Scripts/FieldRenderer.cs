@@ -16,6 +16,8 @@ namespace Hellfire.Presentation
         public Color jammerColor = new Color(0.7f, 0.4f, 1f, 0.16f);
         public Color objectiveColor = new Color(0.3f, 1f, 0.5f, 0.25f);
         public Color spawnColor = new Color(0.4f, 0.7f, 1f, 0.12f);
+        /// <summary>Assigned by SceneBootstrap — see SwarmRenderer.material.</summary>
+        public Material material;
 
         private SimDriver _driver;
         private Mesh _disc;
@@ -29,17 +31,19 @@ namespace Hellfire.Presentation
         {
             _driver = GetComponent<SimDriver>();
             _disc = BuildDisc(48);
-            var shader = Shader.Find("Universal Render Pipeline/Unlit");
-            _material = new Material(shader) { enableInstancing = true };
-            _material.SetFloat("_Surface", 1f);
-            _material.renderQueue = 2900;
+            _material = material;
+            if (_material == null)
+            {
+                var shader = Shader.Find("Universal Render Pipeline/Unlit");
+                if (shader != null) _material = new Material(shader) { enableInstancing = true };
+            }
             _props = new MaterialPropertyBlock();
         }
 
         private void LateUpdate()
         {
             var sim = _driver.Sim;
-            if (sim == null) return;
+            if (sim == null || _material == null) return;
             var sc = sim.Scenario;
 
             if (_matrices == null)

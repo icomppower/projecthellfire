@@ -16,6 +16,8 @@ namespace Hellfire.Presentation
     {
         public int poolSize = 32;
         public Color flashColor = new Color(1f, 0.6f, 0.2f);
+        /// <summary>Assigned by SceneBootstrap — see SwarmRenderer.material.</summary>
+        public Material particleMaterial;
 
         private readonly List<ParticleSystem> _pool = new List<ParticleSystem>();
         private int _next;
@@ -80,8 +82,15 @@ namespace Hellfire.Presentation
             col.color = grad;
 
             var renderer = ps.GetComponent<ParticleSystemRenderer>();
-            var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-            if (shader != null) renderer.material = new Material(shader);
+            if (particleMaterial != null)
+            {
+                renderer.sharedMaterial = particleMaterial;
+            }
+            else
+            {
+                var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+                if (shader != null) renderer.material = new Material(shader);
+            }
             return ps;
         }
     }
