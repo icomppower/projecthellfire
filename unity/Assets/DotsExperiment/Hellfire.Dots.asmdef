@@ -1,0 +1,19 @@
+{
+    "name": "Hellfire.Dots",
+    "rootNamespace": "Hellfire.Dots",
+    "references": [
+        "Hellfire.Sim",
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": ["Editor"],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
